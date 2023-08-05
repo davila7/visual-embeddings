@@ -1,4 +1,4 @@
-# LangChain Agent AI
+# Visual Emveddings
 This Python script uses the OpenAI API to analyze Amazon food reviews by encoding them into embeddings and conducting semantic similarity searches.
 
 ## Code Overview
