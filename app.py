@@ -3,6 +3,7 @@ import openai
 from openai.embeddings_utils import get_embedding, cosine_similarity
 from sklearn.manifold import TSNE
 import streamlit as st
+from matplotlib import cm
 import pandas as pd
 import numpy as np
 from ast import literal_eval
@@ -22,10 +23,11 @@ nomic.login(os.getenv("NUMIC_TOKEN"))
 def main():
     # get data
     datafile_path = "food_review.csv"
-    df = pd.read_csv(datafile_path)
+    # show only columns ProductId, Score, Summary, Text, n_tokens, embedding
+    df = pd.read_csv(datafile_path, usecols=[0,1,3, 5, 7, 8])
 
-    st.set_page_config(page_title="Langchain Agent AI", page_icon="🤖", layout="wide")
-    st.title("Show Embeddings and Similarity")
+    st.set_page_config(page_title="Visual Embeddings", page_icon="🤖", layout="wide")
+    st.title("Visual Embeddings and Similarity")
     st.write("Amazon food reviews dataset")
     st.write(df)
     
@@ -36,56 +38,52 @@ def main():
 
     if btn:
         with st.spinner("Loading"):
-            # df['embedding'] = df['text'].apply(lambda x: get_embedding(x, engine='text-embedding-ada-002'))
-            # df.to_csv('word_embeddings.csv')
 
             search_term_vector = get_embedding(question, engine="text-embedding-ada-002")
             search_term_vector = np.array(search_term_vector)
 
-            # 2D visualization
-            # Convert to a list of lists of floats
             matrix = np.array(df.embedding.apply(literal_eval).to_list())
 
+            # Compute distances to the search_term_vector
+            distances = np.linalg.norm(matrix - search_term_vector, axis=1)
+            df['distance_to_search_term'] = distances
+
+            # Normalize the distances to range 0-1 for coloring
+            df['normalized_distance'] = (df['distance_to_search_term'] - df['distance_to_search_term'].min()) / (df['distance_to_search_term'].max() - df['distance_to_search_term'].min())
+
+            # 2D visualization
             # Create a t-SNE model and transform the data
             tsne = TSNE(n_components=2, perplexity=15, random_state=42, init='random', learning_rate=200)
             vis_dims = tsne.fit_transform(matrix)
-            vis_dims.shape
 
-            colors = ["red", "darkorange", "gold", "turquoise", "darkgreen"]
+            colors = cm.rainbow(df['normalized_distance'])
             x = [x for x,y in vis_dims]
             y = [y for x,y in vis_dims]
-            color_indices = df.Score.values - 1
 
-            # Create colormap
-            colormap = matplotlib.colors.ListedColormap(colors)
-            plt.scatter(x, y, c=color_indices, cmap=colormap, alpha=0.3)
-            
-            # Loop over 0-4 scores
-            for score in [0,1,2,3,4]:
-                avg_x = np.array(x)[df.Score-1==score].mean()
-                avg_y = np.array(y)[df.Score-1==score].mean()
-                color = colors[score]
-                plt.scatter(avg_x, avg_y, marker='x', color=color, s=100)
-            
+            # Plot points with colors corresponding to their distance from search_term_vector
+            plt.scatter(x, y, color=colors, alpha=0.3)
+
             # Set title and plot
-            plt.title("Amazon ratings visualized in language using t-SNE")
-            st.pyplot(plt)
+            plt.title("Similarity to search term visualized in language using t-SNE")
+            
             
             # Convert 'embedding' column to numpy arrays
             df['embedding'] = df['embedding'].apply(lambda x: np.array(literal_eval(x)))
             df["similarities"] = df['embedding'].apply(lambda x: cosine_similarity(x, search_term_vector))
             
-            st.write("Embedding + similarity")
+            st.title("Visual embedding of the search term and the 20 most similar sentences")
             #create two columns
             col1, col2 = st.columns(2)
-            #first column
-            col1.write("Embedding")
-            col1.write(search_term_vector)
-            #second column
-            col2.write("Similarity")
-            col2.write(df.sort_values("similarities", ascending=False).head(20))
+            #col1
+            #show st.plot in col1
+            col1.pyplot(plt)
+            
+            #col2
+            #show df in col2, but only the columns, text and similarities
+            col2.write(df[['similarities','Text']].sort_values("similarities", ascending=False).head(20))
             
             # Convert to a list of lists of floats
+            st.title("Nomic mappping embeddings")
             embeddings = np.array(df.embedding.to_list())            
             df = df.drop('embedding', axis=1)
             df = df.rename(columns={'Unnamed: 0': 'id'})
@@ -94,7 +92,18 @@ def main():
             project = atlas.map_embeddings(embeddings=embeddings, data=data,
                                         id_field='id',
                                         colorable_fields=['Score'])
-            st.write(project)
+            # Convert project to a string before getting link information
+            project_str = str(project)
+
+            st.text(project_str)
+            # Split the project string at the colon and take the second part (index 1)
+            project_link = project_str.split(':', 1)[1]
+
+            # Trim any leading or trailing whitespace
+            project_link = project_link.strip()
+
+            # Crea un iframe con la URL y muéstralo con Streamlit
+            st.markdown(f'<iframe src="{project_link}" width="100%" height="600px"></iframe>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,8 @@
 # Visual Embeddings
 This Python script uses the OpenAI API to analyze Amazon food reviews by encoding them into embeddings and conducting semantic similarity searches.
 
+Check the full article here: [Medium]('https://medium.com')
+
 ## Code Overview
 
 The code begins by importing necessary libraries and loading environmental variables that store sensitive information. It then defines a `main()` function, which is later invoked to run the program.
