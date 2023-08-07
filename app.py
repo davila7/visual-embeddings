@@ -16,7 +16,7 @@ import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
 MODEL = "text-embedding-ada-002"
-st.set_page_config(page_title="Visual Embeddings", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="Visual Embeddings and Similarity", page_icon="🤖", layout="wide")
 
 def main():
     # sidebar with openai api key and nomic token
