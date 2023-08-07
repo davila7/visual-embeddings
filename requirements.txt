@@ -6,3 +6,4 @@ nomic
 matplotlib
 plotly
 scipy
+sklearn
