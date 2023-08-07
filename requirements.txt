@@ -3,3 +3,6 @@ streamlit
 pandas
 numpy
 nomic
+matplotlib
+plotly
+scipy
