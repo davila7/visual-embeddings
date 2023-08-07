@@ -2,6 +2,7 @@ import os
 import openai
 from openai.embeddings_utils import get_embedding, cosine_similarity
 from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 import streamlit as st
 from matplotlib import cm
 import pandas as pd
@@ -60,19 +61,37 @@ def main():
 
                 # 2D visualization
                 # Create a t-SNE model and transform the data
-                tsne = TSNE(n_components=2, perplexity=15, random_state=42, init='random', learning_rate=200)
-                vis_dims = tsne.fit_transform(matrix)
+                # tsne = TSNE(n_components=2, perplexity=15, random_state=42, init='random', learning_rate=200)
+                # vis_dims = tsne.fit_transform(matrix)
 
-                colors = cm.rainbow(df['normalized_distance'])
-                x = [x for x,y in vis_dims]
-                y = [y for x,y in vis_dims]
+                # colors = cm.rainbow(df['normalized_distance'])
+                # x = [x for x,y in vis_dims]
+                # y = [y for x,y in vis_dims]
 
-                # Plot points with colors corresponding to their distance from search_term_vector
-                plt.scatter(x, y, color=colors, alpha=0.3)
+                # # Plot points with colors corresponding to their distance from search_term_vector
+                # plt2.scatter(x, y, color=colors, alpha=0.3)
 
-                # Set title and plot
-                plt.title("Similarity to search term visualized in language using t-SNE")
+                # # Set title and plot
+                # plt2.title("Similarity to search term visualized in language using t-SNE")
                 
+                #3D visualization PCA
+                pca = PCA(n_components=3)
+                vis_dims_pca = pca.fit_transform(matrix)
+                question_vis = vis_dims_pca.tolist()
+
+                fig = plt.figure(figsize=(10, 5))
+                ax = fig.add_subplot(projection='3d')
+                cmap = plt.get_cmap("tab20")
+
+                # Plot question_vis
+                ax.scatter(question_vis[0][0], question_vis[0][1], question_vis[0][2], color=cmap(0), s=100, label="Search term")
+                # Plot other points
+                for i, point in enumerate(vis_dims_pca):
+                    ax.scatter(point[0], point[1], point[2], color=cmap(df['normalized_distance'][i]), alpha=0.3)
+                ax.set_title("Similarity to search term visualized in language using PCA")
+                ax.legend()
+                plt.show()
+               
                 
                 # Convert 'embedding' column to numpy arrays
                 df['embedding'] = df['embedding'].apply(lambda x: np.array(literal_eval(x)))
@@ -84,8 +103,12 @@ def main():
                 #col1
                 #show st.plot in col1
                 col1.pyplot(plt)
-                
+
                 #col2
+                # #show st.plot in col2
+                # col2.pyplot(fig)
+                
+                #col3
                 #show df in col2, but only the columns, text and similarities
                 col2.write(df[['similarities','Text']].sort_values("similarities", ascending=False).head(20))
                 
