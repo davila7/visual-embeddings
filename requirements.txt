@@ -6,4 +6,5 @@ nomic
 matplotlib
 plotly
 scipy
-sklearn
+scikit-learn
+dotenv
